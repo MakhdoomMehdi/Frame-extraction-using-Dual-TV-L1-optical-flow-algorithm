@@ -1,3 +1,8 @@
+Violence Detection Frame Extraction
+This project is designed to extract optical flow and temporal frames from videos for violence detection. It utilizes the Dual TV-L1 optical flow algorithm to process frames and generate useful data for training a deep learning model for violence detection.
+
+The dataset includes videos from three categories: Movie Violence Dataset, Real-life Violence Detection Dataset, and Hockey Videos, all with violent and non-violent video categories.
+
 Project Overview
 This repository contains code that:
 
@@ -81,3 +86,5 @@ Contributing
 Feel free to fork this project, submit pull requests, or suggest any improvements! If you encounter any bugs or issues, please open an issue on GitHub.
 
 License
+This project is open-source and available under the MIT License. See the LICENSE file for more details.
+
