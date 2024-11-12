@@ -1,0 +1,82 @@
+import cv2
+import os
+from tqdm import tqdm
+import numpy as np
+
+
+# Paths to input data and output storage
+dataset_path = "D:/Computer Vision/Dataset Hockey Violent or Non Violent"  # Change this to the actual path
+output_path = "D:/Computer Vision/hockey_frames"
+
+# Create directories for output if they don't already exist
+os.makedirs(output_path, exist_ok=True)
+temporal_output = os.path.join(output_path, "temporal_frames")
+optical_output = os.path.join(output_path, "optical_flow_frames")
+os.makedirs(temporal_output, exist_ok=True)
+os.makedirs(optical_output, exist_ok=True)
+
+# Iterate through the violent and non-violent directories
+for category in ["violent", "non_violent"]:
+    category_path = os.path.join(dataset_path, category)
+    category_temporal = os.path.join(temporal_output, category)
+    category_optical = os.path.join(optical_output, category)
+
+    os.makedirs(category_temporal, exist_ok=True)
+    os.makedirs(category_optical, exist_ok=True)
+    
+    for video_file in tqdm(os.listdir(category_path), desc=f"Processing {category} videos"):
+        video_path = os.path.join(category_path, video_file)
+        video_name = os.path.splitext(video_file)[0]
+        
+        # Create folders for each video
+        temporal_folder = os.path.join(category_temporal, video_name)
+        optical_folder = os.path.join(category_optical, video_name)
+        os.makedirs(temporal_folder, exist_ok=True)
+        os.makedirs(optical_folder, exist_ok=True)
+        
+        # Initialize video capture
+        cap = cv2.VideoCapture(video_path)
+        success, prev_frame = cap.read()
+        
+        if not success:
+            print(f"Failed to read {video_file}")
+            continue
+        
+        # Convert the first frame to grayscale for optical flow
+        prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
+        frame_count = 0
+        
+        while success:
+            # Save the temporal (RGB) frame
+            cv2.imwrite(os.path.join(temporal_folder, f"frame_{frame_count}.jpg"), prev_frame)
+            
+            # Read next frame
+            success, curr_frame = cap.read()
+            if not success:
+                break
+            
+            # Convert current frame to grayscale for optical flow
+            curr_gray = cv2.cvtColor(curr_frame, cv2.COLOR_BGR2GRAY)
+            
+            # Calculate optical flow between the previous and current frames
+            optical_flow = cv2.optflow.createOptFlow_DualTVL1()
+            flow = optical_flow.calc(prev_gray, curr_gray, None)
+            
+            # Convert the flow to a visible format
+            hsv = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2HSV)
+            mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+            hsv[..., 0] = ang * 180 / np.pi / 2  # Angle of flow
+            hsv[..., 1] = 255  # Saturation
+            hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)  # Magnitude of flow
+            optical_flow_img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+            
+            # Save the optical flow image
+            cv2.imwrite(os.path.join(optical_folder, f"flow_{frame_count}.jpg"), optical_flow_img)
+            
+            # Update previous frame for the next iteration
+            prev_gray = curr_gray
+            frame_count += 1
+        
+        cap.release()
+
+print("Frame extraction complete!")
